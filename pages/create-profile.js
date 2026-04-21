@@ -85,7 +85,10 @@ const CreateProfile = () => {
     setLoading(true);
 
     try {
+      console.log('Starting profile creation...');
       const profileData = await uploadUserProfile(username, bio, avatar);
+      console.log('Profile data uploaded:', profileData);
+      
       const tx = await createUser(
         username,
         bio,
@@ -95,12 +98,11 @@ const CreateProfile = () => {
       
       console.log('Profile created successfully, tx:', tx);
       toast.success(SUCCESS_MESSAGES.USER_CREATED);
+      alert('Profile created! Navigating to home...');
       
-      // Redirect to home after successful profile creation
-      setTimeout(() => {
-        console.log('Navigating to home...');
-        window.location.replace('/');
-      }, 1000);
+      // Redirect to home immediately
+      console.log('Starting navigation...');
+      window.location.href = '/';
     } catch (error) {
       console.error('Error creating profile:', error);
       const errorMessage = error?.reason || error?.message || ERROR_MESSAGES.CONTRACT_ERROR;
