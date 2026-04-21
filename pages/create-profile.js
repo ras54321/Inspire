@@ -86,17 +86,21 @@ const CreateProfile = () => {
 
     try {
       const profileData = await uploadUserProfile(username, bio, avatar);
-      await createUser(
+      const tx = await createUser(
         username,
         bio,
         profileData.avatarIpfsHash,
         signer
       );
       
+      console.log('Profile created successfully, tx:', tx);
       toast.success(SUCCESS_MESSAGES.USER_CREATED);
       
       // Redirect to home after successful profile creation
-      setTimeout(() => router.push('/'), 1500);
+      setTimeout(() => {
+        console.log('Navigating to home...');
+        router.push('/');
+      }, 1500);
     } catch (error) {
       console.error('Error creating profile:', error);
       const errorMessage = error?.reason || error?.message || ERROR_MESSAGES.CONTRACT_ERROR;
