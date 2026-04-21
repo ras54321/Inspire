@@ -99,7 +99,8 @@ const CreateProfile = () => {
       setTimeout(() => router.push('/'), 1500);
     } catch (error) {
       console.error('Error creating profile:', error);
-      toast.error(ERROR_MESSAGES.CONTRACT_ERROR);
+      const errorMessage = error?.reason || error?.message || ERROR_MESSAGES.CONTRACT_ERROR;
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
