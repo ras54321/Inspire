@@ -189,7 +189,7 @@ const Index = () => {
       await createUser(
         profileData.username,
         profileData.bio,
-        profileData.avatarHash,
+        profileData.avatarIpfsHash,
         signer
       );
       
