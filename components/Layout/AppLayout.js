@@ -57,13 +57,12 @@ const AppLayout = memo(({ children }) => {
   const toggleMobileMenu = useCallback(() => setIsMobileMenuOpen(prev => !prev), []);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Mobile Header - Using CSS transitions instead of framer-motion */}
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex">
+      {/* Mobile Header */}
       <header
-        className={`fixed top-0 left-0 right-0 z-50 lg:hidden transition-all duration-200 ease-out will-change-transform ${
+        className={`fixed top-0 left-0 right-0 z-50 lg:hidden transition-all duration-200 ${
           isScrolled ? 'bg-white/95 dark:bg-gray-900/95 shadow-md' : 'bg-white dark:bg-gray-900'
         }`}
-        style={{ transform: 'translateZ(0)' }}
       >
         <div className="flex items-center justify-between px-4 py-3">
           <button
@@ -85,7 +84,7 @@ const AppLayout = memo(({ children }) => {
         </div>
       </header>
 
-      {/* Mobile Menu Overlay - Simple CSS transition */}
+      {/* Mobile Menu Overlay */}
       <div
         className={`fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-200 ${
           isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
@@ -93,12 +92,11 @@ const AppLayout = memo(({ children }) => {
         onClick={closeMobileMenu}
       />
 
-      {/* Sidebar - CSS-only transitions for better performance */}
+      {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 bottom-0 w-72 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 z-50 overflow-y-auto lg:static lg:h-screen transition-transform duration-200 ease-out will-change-transform ${
+        className={`fixed lg:sticky lg:top-0 lg:left-0 left-0 top-0 bottom-0 w-72 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 z-50 overflow-y-auto h-screen flex-shrink-0 transition-transform duration-200 ease-out ${
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
-        style={{ transform: 'translateZ(0)' }}
       >
         {/* Logo */}
         <div className="p-6 hidden lg:flex items-center gap-3">
@@ -172,11 +170,11 @@ const AppLayout = memo(({ children }) => {
       </aside>
 
       {/* Main Content */}
-      <main className="pt-16 lg:pt-0 min-h-screen">
-        {/* Desktop Header - CSS transitions only */}
+      <main className="flex-1 min-h-screen pt-16 lg:pt-0">
+        {/* Desktop Header */}
         <header
-          className={`hidden lg:flex items-center justify-between px-8 py-4 sticky top-0 z-30 transition-all duration-200 ${
-            isScrolled ? 'bg-white/95 dark:bg-gray-900/95 shadow-sm' : 'bg-transparent'
+          className={`hidden lg:flex items-center justify-between px-8 py-4 sticky top-0 z-30 bg-gray-50/95 dark:bg-gray-900/95 transition-all duration-200 ${
+            isScrolled ? 'shadow-sm' : ''
           }`}
         >
           <div className="flex items-center gap-4">
@@ -189,14 +187,14 @@ const AppLayout = memo(({ children }) => {
             <Notifications />
             <button
               onClick={() => router.push('/create-profile')}
-              className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300 hover:scale-105"
+              className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-blue-500/30 transition-all"
             >
               Create Profile
             </button>
           </div>
         </header>
 
-        {/* Page Content - No animation wrapper to prevent lag */}
+        {/* Page Content */}
         <div className="px-4 lg:px-8 py-4 lg:py-8 max-w-7xl mx-auto">
           {children}
         </div>
