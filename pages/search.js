@@ -385,6 +385,6 @@ const Search = memo(() => {
       )}
     </div>
   );
-};
+});
 
 export default Search;

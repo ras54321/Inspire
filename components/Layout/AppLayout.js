@@ -232,3 +232,4 @@ const AppLayout = memo(({ children }) => {
 });
 
 export default AppLayout;
+
