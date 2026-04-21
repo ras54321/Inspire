@@ -99,7 +99,12 @@ const CreateProfile = () => {
       // Redirect to home after successful profile creation
       setTimeout(() => {
         console.log('Navigating to home...');
-        router.push('/');
+        try {
+          router.push('/');
+        } catch (navError) {
+          console.error('Router navigation failed, using fallback:', navError);
+          window.location.href = '/';
+        }
       }, 1500);
     } catch (error) {
       console.error('Error creating profile:', error);
