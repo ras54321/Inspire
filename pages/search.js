@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { useRouter } from 'next/router';
-import { motion, AnimatePresence } from 'framer-motion';
 import { 
   HiSearch, 
   HiUser, 
@@ -10,11 +9,9 @@ import {
   HiFilter,
   HiTrendingUp
 } from 'react-icons/hi';
-import { ethers } from 'ethers';
-import { userExists, getTotalPosts, getPost, getTotalUsers } from '../lib/contract';
 import toast from 'react-hot-toast';
 
-const Search = () => {
+const Search = memo(() => {
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
@@ -22,24 +19,39 @@ const Search = () => {
   const [loading, setLoading] = useState(false);
   const [recentSearches, setRecentSearches] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [debouncedQuery, setDebouncedQuery] = useState('');
 
-  // Load recent searches from localStorage
+  // Load recent searches from localStorage - only once on mount
   useEffect(() => {
     const saved = localStorage.getItem('recentSearches');
     if (saved) {
-      setRecentSearches(JSON.parse(saved));
+      try {
+        setRecentSearches(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to parse recent searches', e);
+      }
     }
   }, []);
 
-  // Save recent search
+  // Better debounce implementation
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  // Save recent search - memoized
   const saveRecentSearch = useCallback((searchQuery) => {
     if (!searchQuery.trim()) return;
-    const updated = [searchQuery, ...recentSearches.filter(s => s !== searchQuery)].slice(0, 10);
-    setRecentSearches(updated);
-    localStorage.setItem('recentSearches', JSON.stringify(updated));
-  }, [recentSearches]);
+    setRecentSearches(prev => {
+      const updated = [searchQuery, ...prev.filter(s => s !== searchQuery)].slice(0, 10);
+      localStorage.setItem('recentSearches', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
 
-  // Search functionality
+  // Search functionality - memoized results
   const performSearch = useCallback(async (searchQuery) => {
     if (!searchQuery.trim()) {
       setResults({ users: [], posts: [], groups: [] });
@@ -47,7 +59,6 @@ const Search = () => {
     }
 
     setLoading(true);
-    saveRecentSearch(searchQuery);
 
     try {
       // Mock search results - in production, this would query the contract/IPFS
@@ -103,29 +114,16 @@ const Search = () => {
     localStorage.setItem('recentSearches', JSON.stringify(updated));
   };
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { 
-      opacity: 1,
-      transition: { staggerChildren: 0.05 }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
-  };
-
-  const trendingTopics = ['#Web3', '#NFT', '#DeFi', '#Blockchain', '#Crypto', '#Ethereum', '#Metaverse'];
+  // Memoized trending topics
+  const trendingTopics = useMemo(() => ['#Web3', '#NFT', '#DeFi', '#Blockchain', '#Crypto', '#Ethereum', '#Metaverse'], []);
+  
+  // Memoized tab configuration
+  const tabs = useMemo(() => ['all', 'users', 'posts', 'groups'], []);
 
   return (
     <div className="max-w-4xl mx-auto">
-      {/* Search Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="sticky top-0 z-20 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-md pb-4"
-      >
+      {/* Search Header - CSS animation instead of motion */}
+      <div className="sticky top-0 z-20 bg-gray-50/95 dark:bg-gray-900/95 pb-4 animate-fade-in">
         <div className="relative">
           <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
             <HiSearch className="w-5 h-5 text-gray-400" />
@@ -171,43 +169,31 @@ const Search = () => {
             <HiFilter className="w-5 h-5" />
           </button>
         </div>
-      </motion.div>
+      </div>
 
-      {/* Filters Panel */}
-      <AnimatePresence>
-        {showFilters && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 mb-4 shadow-lg">
-              <h3 className="font-medium text-gray-900 dark:text-white mb-3">Filters</h3>
-              <div className="flex flex-wrap gap-2">
-                <button className="px-3 py-1.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-medium">
-                  Most Recent
-                </button>
-                <button className="px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600">
-                  Most Popular
-                </button>
-                <button className="px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600">
-                  Verified Only
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Filters Panel - CSS transition */}
+      <div
+        className={`overflow-hidden transition-all duration-200 ${showFilters ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}
+      >
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 mb-4 shadow-lg">
+          <h3 className="font-medium text-gray-900 dark:text-white mb-3">Filters</h3>
+          <div className="flex flex-wrap gap-2">
+            <button className="px-3 py-1.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-medium">
+              Most Recent
+            </button>
+            <button className="px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600">
+              Most Popular
+            </button>
+            <button className="px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600">
+              Verified Only
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Results or Suggestions */}
       {query ? (
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="space-y-4"
-        >
+        <div className="space-y-4 animate-fade-in">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
@@ -223,9 +209,8 @@ const Search = () => {
                   </h2>
                   <div className="grid gap-3">
                     {results.users.map((user) => (
-                      <motion.div
+                      <div
                         key={user.address}
-                        variants={itemVariants}
                         onClick={() => router.push(`/profile/${user.address}`)}
                         className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center gap-4"
                       >
@@ -241,7 +226,7 @@ const Search = () => {
                         <button className="px-4 py-2 bg-blue-500 text-white rounded-full text-sm font-medium hover:bg-blue-600 transition-colors">
                           Follow
                         </button>
-                      </motion.div>
+                      </div>
                     ))}
                   </div>
                 </section>
@@ -256,9 +241,8 @@ const Search = () => {
                   </h2>
                   <div className="grid gap-3">
                     {results.posts.map((post) => (
-                      <motion.div
+                      <div
                         key={post.id}
-                        variants={itemVariants}
                         onClick={() => router.push(`/post/${post.id}`)}
                         className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm hover:shadow-md transition-all cursor-pointer"
                       >
@@ -270,7 +254,7 @@ const Search = () => {
                           <span>{post.likes} likes</span>
                           <span>{post.comments} comments</span>
                         </div>
-                      </motion.div>
+                      </div>
                     ))}
                   </div>
                 </section>
@@ -285,16 +269,15 @@ const Search = () => {
                   </h2>
                   <div className="grid gap-3">
                     {results.groups.map((group) => (
-                      <motion.div
+                      <div
                         key={group.id}
-                        variants={itemVariants}
                         onClick={() => router.push(`/groups/${group.id}`)}
                         className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm hover:shadow-md transition-all cursor-pointer"
                       >
                         <h3 className="font-semibold text-gray-900 dark:text-white">{group.name}</h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{group.description}</p>
                         <span className="text-sm text-blue-500">{group.members.toLocaleString()} members</span>
-                      </motion.div>
+                      </div>
                     ))}
                   </div>
                 </section>
@@ -302,21 +285,17 @@ const Search = () => {
 
               {/* No Results */}
               {results.users.length === 0 && results.posts.length === 0 && results.groups.length === 0 && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-center py-12"
-                >
+                <div className="text-center py-12 animate-fade-in">
                   <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                     <HiSearch className="w-10 h-10 text-gray-400" />
                   </div>
                   <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">No results found</h3>
                   <p className="text-gray-500 dark:text-gray-400">Try adjusting your search terms</p>
-                </motion.div>
+                </div>
               )}
             </>
           )}
-        </motion.div>
+        </div>
       ) : (
         <div className="space-y-6">
           {/* Recent Searches */}
@@ -336,10 +315,8 @@ const Search = () => {
               </div>
               <div className="flex flex-wrap gap-2">
                 {recentSearches.map((search) => (
-                  <motion.button
+                  <button
                     key={search}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
                     onClick={() => setQuery(search)}
                     className="group flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
                   >
@@ -351,7 +328,7 @@ const Search = () => {
                     >
                       <HiX className="w-3 h-3" />
                     </div>
-                  </motion.button>
+                  </button>
                 ))}
               </div>
             </section>
@@ -365,15 +342,13 @@ const Search = () => {
             </h2>
             <div className="flex flex-wrap gap-2">
               {trendingTopics.map((topic) => (
-                <motion.button
+                <button
                   key={topic}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
                   onClick={() => setQuery(topic)}
-                  className="px-4 py-2 bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-500/20 dark:to-purple-500/20 rounded-full text-blue-600 dark:text-blue-400 font-medium hover:from-blue-500/20 hover:to-purple-500/20 transition-all"
+                  className="px-4 py-2 bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-500/20 dark:to-purple-500/20 rounded-full text-blue-600 dark:text-blue-400 font-medium hover:from-blue-500/20 hover:to-purple-500/20 transition-all hover:scale-105 active:scale-95"
                 >
                   {topic}
-                </motion.button>
+                </button>
               ))}
             </div>
           </section>
@@ -387,11 +362,8 @@ const Search = () => {
                 { username: 'sbf', bio: 'Building the future', followers: '890K' },
                 { username: 'cdixon', bio: 'Partner @ a16z', followers: '567K' },
               ].map((user, index) => (
-                <motion.div
+                <div
                   key={user.username}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
                   className="bg-white dark:bg-gray-800 rounded-xl p-4 flex items-center gap-4"
                 >
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center">
@@ -405,7 +377,7 @@ const Search = () => {
                   <button className="px-4 py-2 bg-blue-500 text-white rounded-full text-sm font-medium hover:bg-blue-600 transition-colors">
                     Follow
                   </button>
-                </motion.div>
+                </div>
               ))}
             </div>
           </section>

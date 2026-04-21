@@ -1,14 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { useRouter } from 'next/router';
-import { motion, AnimatePresence } from 'framer-motion';
 import { 
   HiHome, 
   HiUser, 
   HiUserGroup, 
   HiChat, 
-  HiCog, 
   HiSearch,
-  HiBell,
   HiMenu,
   HiX,
   HiShieldCheck,
@@ -19,21 +16,29 @@ import {
 import DarkModeToggle from '../UI/DarkModeToggle';
 import Notifications from '../UI/Notifications';
 
-const AppLayout = ({ children }) => {
+const AppLayout = memo(({ children }) => {
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [notifications, setNotifications] = useState([]);
 
+  // Throttled scroll handler for better performance
   useEffect(() => {
+    let ticking = false;
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setIsScrolled(window.scrollY > 10);
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navigation = [
+  // Memoized navigation to prevent re-renders
+  const navigation = useMemo(() => [
     { name: 'Home', href: '/', icon: HiHome },
     { name: 'Explore', href: '/explore', icon: HiTrendingUp },
     { name: 'Users', href: '/users', icon: HiUserGroup },
@@ -44,29 +49,32 @@ const AppLayout = ({ children }) => {
     { name: 'AI Chat', href: '/ai-chat', icon: HiChat },
     { name: 'Analytics', href: '/analytics', icon: HiTrendingUp },
     { name: 'Admin', href: '/admin', icon: HiShieldCheck },
-  ];
+  ], []);
 
-  const isActive = (path) => router.pathname === path;
+  const isActive = useCallback((path) => router.pathname === path, [router.pathname]);
+  
+  const closeMobileMenu = useCallback(() => setIsMobileMenuOpen(false), []);
+  const toggleMobileMenu = useCallback(() => setIsMobileMenuOpen(prev => !prev), []);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
-      {/* Mobile Header */}
-      <motion.header
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        className={`fixed top-0 left-0 right-0 z-50 lg:hidden transition-all duration-300 ${
-          isScrolled ? 'bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-lg' : 'bg-white dark:bg-gray-900'
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Mobile Header - Using CSS transitions instead of framer-motion */}
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 lg:hidden transition-all duration-200 ease-out will-change-transform ${
+          isScrolled ? 'bg-white/95 dark:bg-gray-900/95 shadow-md' : 'bg-white dark:bg-gray-900'
         }`}
+        style={{ transform: 'translateZ(0)' }}
       >
         <div className="flex items-center justify-between px-4 py-3">
           <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            onClick={toggleMobileMenu}
+            className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-transform"
+            aria-label="Toggle menu"
           >
             {isMobileMenuOpen ? <HiX className="w-6 h-6" /> : <HiMenu className="w-6 h-6" />}
           </button>
           
-          <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-xl font-bold text-blue-600 dark:text-blue-400">
             Inspire
           </h1>
           
@@ -75,31 +83,22 @@ const AppLayout = ({ children }) => {
             <Notifications />
           </div>
         </div>
-      </motion.header>
+      </header>
 
-      {/* Mobile Menu Overlay */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-            onClick={() => setIsMobileMenuOpen(false)}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Sidebar */}
-      <motion.aside
-        initial={{ x: -300 }}
-        animate={{ 
-          x: isMobileMenuOpen ? 0 : -300,
-        }}
-        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className={`fixed left-0 top-0 bottom-0 w-72 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 z-50 overflow-y-auto lg:translate-x-0 lg:static lg:h-screen transition-transform duration-300 ${
-          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+      {/* Mobile Menu Overlay - Simple CSS transition */}
+      <div
+        className={`fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-200 ${
+          isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
+        onClick={closeMobileMenu}
+      />
+
+      {/* Sidebar - CSS-only transitions for better performance */}
+      <aside
+        className={`fixed left-0 top-0 bottom-0 w-72 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 z-50 overflow-y-auto lg:static lg:h-screen transition-transform duration-200 ease-out will-change-transform ${
+          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
+        style={{ transform: 'translateZ(0)' }}
       >
         {/* Logo */}
         <div className="p-6 hidden lg:flex items-center gap-3">
@@ -138,13 +137,10 @@ const AppLayout = ({ children }) => {
                       : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                   }`}
                 >
-                  <item.icon className={`w-5 h-5 ${isActive(item.href) ? '' : 'group-hover:scale-110'} transition-transform`} />
+                  <item.icon className={`w-5 h-5 transition-transform duration-200 ${isActive(item.href) ? '' : 'group-hover:scale-110'}`} />
                   <span className="font-medium">{item.name}</span>
                   {isActive(item.href) && (
-                    <motion.div
-                      layoutId="activeIndicator"
-                      className="ml-auto w-2 h-2 rounded-full bg-white"
-                    />
+                    <div className="ml-auto w-2 h-2 rounded-full bg-white" />
                   )}
                 </button>
               </li>
@@ -173,16 +169,14 @@ const AppLayout = ({ children }) => {
             </div>
           </div>
         </div>
-      </motion.aside>
+      </aside>
 
       {/* Main Content */}
-      <main className="lg:ml-0 pt-16 lg:pt-0 min-h-screen">
-        {/* Desktop Header */}
-        <motion.header
-          initial={{ y: -100 }}
-          animate={{ y: 0 }}
-          className={`hidden lg:flex items-center justify-between px-8 py-4 sticky top-0 z-30 transition-all duration-300 ${
-            isScrolled ? 'bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-sm' : 'bg-transparent'
+      <main className="pt-16 lg:pt-0 min-h-screen">
+        {/* Desktop Header - CSS transitions only */}
+        <header
+          className={`hidden lg:flex items-center justify-between px-8 py-4 sticky top-0 z-30 transition-all duration-200 ${
+            isScrolled ? 'bg-white/95 dark:bg-gray-900/95 shadow-sm' : 'bg-transparent'
           }`}
         >
           <div className="flex items-center gap-4">
@@ -200,17 +194,12 @@ const AppLayout = ({ children }) => {
               Create Profile
             </button>
           </div>
-        </motion.header>
+        </header>
 
-        {/* Page Content */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="px-4 lg:px-8 py-4 lg:py-8 max-w-7xl mx-auto"
-        >
+        {/* Page Content - No animation wrapper to prevent lag */}
+        <div className="px-4 lg:px-8 py-4 lg:py-8 max-w-7xl mx-auto">
           {children}
-        </motion.div>
+        </div>
       </main>
 
       {/* Mobile Bottom Navigation */}
@@ -226,7 +215,7 @@ const AppLayout = ({ children }) => {
             <button
               key={item.href}
               onClick={() => router.push(item.href)}
-              className={`p-3 rounded-xl transition-all duration-200 ${
+              className={`p-3 rounded-xl transition-colors duration-150 ${
                 isActive(item.href)
                   ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/30'
                   : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
@@ -242,6 +231,6 @@ const AppLayout = ({ children }) => {
       <div className="h-20 lg:hidden" />
     </div>
   );
-};
+});
 
 export default AppLayout;
