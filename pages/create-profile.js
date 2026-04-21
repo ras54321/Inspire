@@ -99,13 +99,8 @@ const CreateProfile = () => {
       // Redirect to home after successful profile creation
       setTimeout(() => {
         console.log('Navigating to home...');
-        try {
-          router.push('/');
-        } catch (navError) {
-          console.error('Router navigation failed, using fallback:', navError);
-          window.location.href = '/';
-        }
-      }, 1500);
+        window.location.replace('/');
+      }, 1000);
     } catch (error) {
       console.error('Error creating profile:', error);
       const errorMessage = error?.reason || error?.message || ERROR_MESSAGES.CONTRACT_ERROR;
@@ -260,13 +255,7 @@ const CreateProfile = () => {
 
         <div className="mt-6 text-center">
           <button
-            onClick={() => {
-              try {
-                router.push('/');
-              } catch (e) {
-                window.location.href = '/';
-              }
-            }}
+            onClick={() => window.location.href = '/'}
             className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
           >
             ← Back to Home
