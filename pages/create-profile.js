@@ -260,7 +260,13 @@ const CreateProfile = () => {
 
         <div className="mt-6 text-center">
           <button
-            onClick={() => router.push('/')}
+            onClick={() => {
+              try {
+                router.push('/');
+              } catch (e) {
+                window.location.href = '/';
+              }
+            }}
             className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
           >
             ← Back to Home
