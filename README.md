@@ -2,7 +2,7 @@
 
 A modern, decentralized social media platform built on Ethereum. Create profiles, share posts, follow users, join groups, and connect with the Web3 community - all powered by smart contracts.
 
-![Inspire](https://inspire-snowy.vercel.app)
+[Inspire](https://inspire-snowy.vercel.app)
 
 ## ✨ Features
 
